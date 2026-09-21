@@ -1791,3 +1791,46 @@ td a{
         font-size: 20px !important;
     }
 }
+/* =========================================================
+   IRONFORGE — MODAL CLOSE BUTTON
+   Dark professional X button
+   ========================================================= */
+
+.if-modal-close {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border: 1px solid rgba(255,255,255,.10) !important;
+    border-radius: 9px !important;
+
+    background: #0b0d10 !important;
+    color: #8f969f !important;
+
+    font-family: Arial, sans-serif !important;
+    font-size: 22px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: .2s ease !important;
+}
+
+.if-modal-close:hover {
+    color: #ffffff !important;
+    background: rgba(255,45,53,.10) !important;
+    border-color: rgba(255,45,53,.35) !important;
+    transform: none !important;
+}
+
+.if-modal-close:active {
+    transform: scale(.95) !important;
+}
