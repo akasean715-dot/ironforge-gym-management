@@ -1,7 +1,7 @@
 {
-  "name": "IRONFORGE Gym Management",
-  "short_name": "IRONFORGE",
-  "description": "IRONFORGE Gym Management System",
+  "name": "TRIBAL COMBAT ACADEMY",
+  "short_name": "TRIBAL GYM",
+  "description": "TRIBAL COMBAT Gym Management System",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
