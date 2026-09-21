@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard — IRONFORGE Gym Management</title>
     <link rel="stylesheet" href="style.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#080808">
 </head>
 <body>
 
@@ -344,6 +347,18 @@ togglePassword.addEventListener("click", () => {
         console.log("ℹ️ No existing local gym data found.");
     }
 </script>
-
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .then(() => {
+          console.log("IRONFORGE Service Worker registered");
+        })
+        .catch(error => {
+          console.error("Service Worker registration failed:", error);
+        });
+    });
+  }
+</script>
 </body>
 </html>
