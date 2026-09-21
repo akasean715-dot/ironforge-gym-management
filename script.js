@@ -373,91 +373,228 @@
   }
 
 
-  function setupProfilePhoto(){
-    const avatars = [...document.querySelectorAll('.topbar-user .user-avatar')];
-    if(!avatars.length) return;
+ function setupProfilePhoto(){
+  const avatars = [...document.querySelectorAll('.topbar-user .user-avatar')];
+  if(!avatars.length) return;
 
-    const STORAGE = 'ironforge_profile_photo_v1';
+  const STORAGE = 'ironforge_profile_photo_v1';
+  const PROFILE_DOC = 'gymData/profile';
 
-    // Create one hidden file picker for the whole page.
-    let input = document.getElementById('if-profile-photo-input');
-    if(!input){
-      input = document.createElement('input');
-      input.type = 'file';
-      input.id = 'if-profile-photo-input';
-      input.accept = 'image/*';
-      input.style.display = 'none';
-      document.body.appendChild(input);
+  // Create one hidden file picker for the whole page.
+  let input = document.getElementById('if-profile-photo-input');
+
+  if(!input){
+    input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'if-profile-photo-input';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+  }
+
+  const applyPhoto = (src) => {
+    avatars.forEach(avatar => {
+      if(src){
+        avatar.style.backgroundImage = `url("${src}")`;
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.style.backgroundRepeat = 'no-repeat';
+        avatar.style.color = 'transparent';
+        avatar.style.fontSize = '0';
+        avatar.title = 'Change profile photo';
+        avatar.setAttribute('aria-label', 'Change profile photo');
+      }else{
+        avatar.style.backgroundImage = '';
+        avatar.style.backgroundSize = '';
+        avatar.style.backgroundPosition = '';
+        avatar.style.backgroundRepeat = '';
+        avatar.style.color = '';
+        avatar.style.fontSize = '';
+        avatar.title = 'Upload profile photo';
+        avatar.setAttribute('aria-label', 'Upload profile photo');
+      }
+    });
+  };
+
+  // Keep the current device working immediately.
+  const saved = localStorage.getItem(STORAGE);
+  if(saved) applyPhoto(saved);
+
+  avatars.forEach(avatar => {
+    if(avatar.dataset.profilePhotoBound) return;
+
+    avatar.dataset.profilePhotoBound = '1';
+    avatar.style.cursor = 'pointer';
+
+    avatar.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      input.value = '';
+      input.click();
+    });
+  });
+
+  // Load the shared photo from Firebase.
+  const loadRemotePhoto = async () => {
+    try{
+      const firestoreModule = await import(
+        'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
+      );
+
+      const appModule = await import(
+        'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+      );
+
+      let app;
+
+      if(window.firebaseApp){
+        app = window.firebaseApp;
+      }else{
+        const firebaseConfig = {
+          apiKey: "AIzaSyDbJMBU5f7qnly_G8rNFlnrLUfZkQolCs8",
+          authDomain: "tca-gym-management.firebaseapp.com",
+          projectId: "tca-gym-management",
+          storageBucket: "tca-gym-management.firebasestorage.app",
+          messagingSenderId: "686752972470",
+          appId: "1:686752972470:web:69df521e3b7b3cd0f63017",
+          measurementId: "G-HC377RVKQJ"
+        };
+
+        const apps = appModule.getApps();
+
+        app = apps.length
+          ? appModule.getApp()
+          : appModule.initializeApp(firebaseConfig);
+      }
+
+      const db = window.firebaseDB || firestoreModule.getFirestore(app);
+      const snap = await firestoreModule.getDoc(
+        firestoreModule.doc(db, PROFILE_DOC)
+      );
+
+      if(snap.exists()){
+        const photo = snap.data()?.photo;
+
+        if(photo){
+          localStorage.setItem(STORAGE, photo);
+          applyPhoto(photo);
+        }
+      }
+    }catch(error){
+      console.warn('Could not load shared profile photo:', error);
+    }
+  };
+
+  loadRemotePhoto();
+
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if(!file) return;
+
+    if(!file.type.startsWith('image/')){
+      toast('Please choose an image file.', 'error');
+      return;
     }
 
-    const applyPhoto = (src) => {
-      avatars.forEach(avatar => {
-        if(src){
-          avatar.style.backgroundImage = `url("${src}")`;
-          avatar.style.backgroundSize = 'cover';
-          avatar.style.backgroundPosition = 'center';
-          avatar.style.backgroundRepeat = 'no-repeat';
-          avatar.style.color = 'transparent';
-          avatar.style.fontSize = '0';
-          avatar.title = 'Change profile photo';
-          avatar.setAttribute('aria-label', 'Change profile photo');
-        }else{
-          avatar.style.backgroundImage = '';
-          avatar.style.backgroundSize = '';
-          avatar.style.backgroundPosition = '';
-          avatar.style.backgroundRepeat = '';
-          avatar.style.color = '';
-          avatar.style.fontSize = '';
-          avatar.title = 'Upload profile photo';
-          avatar.setAttribute('aria-label', 'Upload profile photo');
-        }
-      });
+    if(file.size > 10 * 1024 * 1024){
+      toast('Please choose an image smaller than 10 MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try{
+        const original = new Image();
+
+        original.onload = async () => {
+          // Resize the image before saving it.
+          const maxSize = 256;
+          const scale = Math.min(
+            maxSize / original.width,
+            maxSize / original.height,
+            1
+          );
+
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(original.width * scale));
+          canvas.height = Math.max(1, Math.round(original.height * scale));
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(
+            original,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          const photo = canvas.toDataURL('image/jpeg', 0.82);
+
+          // Show it immediately on this device.
+          localStorage.setItem(STORAGE, photo);
+          applyPhoto(photo);
+
+          try{
+            const firestoreModule = await import(
+              'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'
+            );
+
+            const appModule = await import(
+              'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+            );
+
+            let app;
+
+            if(window.firebaseApp){
+              app = window.firebaseApp;
+            }else{
+              const firebaseConfig = {
+                apiKey: "AIzaSyDbJMBU5f7qnly_G8rNFlnrLUfZkQolCs8",
+                authDomain: "tca-gym-management.firebaseapp.com",
+                projectId: "tca-gym-management",
+                storageBucket: "tca-gym-management.firebasestorage.app",
+                messagingSenderId: "686752972470",
+                appId: "1:686752972470:web:69df521e3b7b3cd0f63017",
+                measurementId: "G-HC377RVKQJ"
+              };
+
+              const apps = appModule.getApps();
+
+              app = apps.length
+                ? appModule.getApp()
+                : appModule.initializeApp(firebaseConfig);
+            }
+
+            const db = window.firebaseDB || firestoreModule.getFirestore(app);
+
+            await firestoreModule.setDoc(
+              firestoreModule.doc(db, PROFILE_DOC),
+              {
+                photo,
+                updatedAt: new Date().toISOString()
+              },
+              { merge: true }
+            );
+
+            toast('Profile photo updated on all devices.');
+          }catch(error){
+            console.error('Profile photo Firebase save failed:', error);
+            toast('Photo saved here, but Firebase sync failed.', 'error');
+          }
+        };
+
+        original.src = reader.result;
+
+      }catch(error){
+        console.error(error);
+        toast('Could not process the image.', 'error');
+      }
     };
 
-    const saved = localStorage.getItem(STORAGE);
-    if(saved) applyPhoto(saved);
-
-    avatars.forEach(avatar => {
-      if(avatar.dataset.profilePhotoBound) return;
-      avatar.dataset.profilePhotoBound = '1';
-      avatar.style.cursor = 'pointer';
-
-      avatar.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        input.value = '';
-        input.click();
-      });
-    });
-
-    input.addEventListener('change', () => {
-      const file = input.files?.[0];
-      if(!file) return;
-
-      if(!file.type.startsWith('image/')){
-        toast('Please choose an image file.', 'error');
-        return;
-      }
-
-      // Keep browser storage from becoming unnecessarily large.
-      if(file.size > 5 * 1024 * 1024){
-        toast('Please choose an image smaller than 5 MB.', 'error');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        try{
-          localStorage.setItem(STORAGE, reader.result);
-          applyPhoto(reader.result);
-          toast('Profile photo updated.');
-        }catch{
-          toast('This image is too large to save in the browser.', 'error');
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+    reader.readAsDataURL(file);
+  });
+}
 
   function setupHeader(){
     // Keep the owner identity and Settings form synchronized with saved settings.
