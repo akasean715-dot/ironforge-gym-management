@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — IRONFORGE Gym Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+
+            <div class="login-brand">
+                <img
+                    src="assets/tribal-logo.png"
+                    alt="Tribal Combat Academy"
+                    class="login-logo"
+                >
+
+                <div>
+                    <strong>
+                        <span>TRIBAL</span>
+                        <span>COMBAT</span>
+                        <span>Academy</span>
+                    </strong>
+                    <small>GYM MANAGEMENT</small>
+                </div>
+            </div>
+
+            <div class="login-heading">
+                <span>SECURE ACCESS</span>
+                <h1>Welcome Back</h1>
+                <p>Sign in to access your gym dashboard.</p>
+            </div>
+
+            <form id="loginForm">
+
+                <label for="loginEmail">Email Address</label>
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="Enter your email"
+                    required
+                >
+
+                <label for="loginPassword">Password</label>
+
+                <div class="password-wrapper">
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        placeholder="Enter your password"
+                        required
+                    >
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        aria-label="Show password"
+                    >◉</button>
+                </div>
+
+                <p id="loginError" class="login-error"></p>
+
+                <button type="submit" class="login-button">
+                    SIGN IN
+                </button>
+
+            </form>
+
+            <div class="login-footer">
+                <span></span>
+                <small>AUTHORIZED USERS ONLY</small>
+                <span></span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <a class="brand tca-brand" href="index.html">
+    <img
+        src="assets/tribal-logo.png"
+        alt="Tribal Combat Academy"
+        class="tca-logo"
+    >
+
+    <span class="tca-brand-text">
+        <strong>
+            <span>TRIBAL</span>
+            <span>COMBAT</span>
+            <span>Academy</span>
+        </strong>
+        <small>GYM MANAGEMENT</small>
+    </span>
+</a>
+
+            <nav class="sidebar-nav">
+                <span class="nav-label">MAIN</span>
+                <a href="index.html" class="active">Dashboard</a>
+<a href="members.html">Members</a>
+<a href="memberships.html">Memberships</a>
+<a href="attendance.html">Attendance</a>
+<a href="bookings.html">Bookings</a>
+<a href="trainers.html">Trainers</a>
+<a href="finance.html">Income & Expenses</a>
+<a href="reports.html">Reports</a>
+<a href="settings.html">Settings</a>
+            </nav>
+
+            <div class="sidebar-promo">
+                <span>STRONGER</span>
+                <strong>Healthier.<br>Happier.</strong>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div class="search-box"><span>⌕</span><input type="search" placeholder="Search members, bookings, or anything..."></div>
+                <div class="topbar-user"><button class="icon-btn" aria-label="Notifications">♧</button><div class="user-avatar">A</div><div><strong>Admin</strong><small>Gym Owner</small></div><span>⌄</span></div>
+            </header>
+
+            <div class="content">
+                
+        <section class="page-header">
+            <div>
+                <span class="eyebrow">OVERVIEW</span>
+                <h1>Dashboard</h1>
+                <p>Here’s what’s happening at your gym today.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-secondary">Export Report</button>
+                <button class="btn btn-primary">+ Quick Action</button>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <article class="stat-card"><span>Total Members</span><strong>248</strong><small>↑ 12% from last month</small></article>
+            <article class="stat-card"><span>Active Memberships</span><strong>193</strong><small>↑ 8% from last month</small></article>
+            <article class="stat-card"><span>Monthly Income</span><strong>₹4,82,500</strong><small>↑ 15% from last month</small></article>
+            <article class="stat-card"><span>Monthly Expenses</span><strong>₹1,26,800</strong><small>↑ 7% from last month</small></article>
+            <article class="stat-card"><span>Net Profit</span><strong>₹3,55,700</strong><small>↑ 18% from last month</small></article>
+            <article class="stat-card"><span>Expiring Soon</span><strong>17</strong><small>Within the next 7 days</small></article>
+        </section>
+
+        <section class="dashboard-grid">
+            <article class="panel chart-panel">
+                <div class="panel-heading"><div><span class="eyebrow">FINANCE</span><h2>Income vs Expenses</h2></div><select><option>This Month</option><option>Last 3 Months</option><option>Last 6 Months</option></select></div>
+                <div class="chart-placeholder">Income & Expense Chart</div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-heading"><div><span class="eyebrow">MEMBERS</span><h2>Membership Status</h2></div></div>
+                <div class="donut-placeholder">248<br><small>Total Members</small></div>
+                <ul class="legend-list">
+                    <li><span class="dot active"></span>Active <b>193</b></li>
+                    <li><span class="dot warning"></span>Expiring Soon <b>17</b></li>
+                    <li><span class="dot danger"></span>Expired <b>21</b></li>
+                    <li><span class="dot muted"></span>Pending Payment <b>17</b></li>
+                </ul>
+            </article>
+
+            <article class="panel">
+                <div class="panel-heading"><div><span class="eyebrow">TODAY</span><h2>Bookings</h2></div><a href="bookings.html">View All</a></div>
+                <div class="list-row"><span>10:00 AM</span><div><b>Personal Training</b><small>Rahul Sharma</small></div><span class="badge success">Confirmed</span></div>
+                <div class="list-row"><span>11:30 AM</span><div><b>Yoga Class</b><small>12 members</small></div><span class="badge success">Confirmed</span></div>
+                <div class="list-row"><span>5:00 PM</span><div><b>Zumba Class</b><small>18 members</small></div><span class="badge success">Confirmed</span></div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-heading"><div><span class="eyebrow">FINANCE</span><h2>Recent Transactions</h2></div><a href="finance.html">View All</a></div>
+                <div class="list-row"><div><b>Rahul Sharma</b><small>Monthly Membership</small></div><strong class="income">+₹2,500</strong></div>
+                <div class="list-row"><div><b>Anita Singh</b><small>Personal Training</small></div><strong class="income">+₹6,000</strong></div>
+                <div class="list-row"><div><b>Electricity</b><small>Utility Expense</small></div><strong class="expense">-₹8,400</strong></div>
+                <div class="list-row"><div><b>Equipment Repair</b><small>Maintenance</small></div><strong class="expense">-₹3,200</strong></div>
+            </article>
+
+            <article class="panel quick-actions">
+                <div class="panel-heading"><div><span class="eyebrow">SHORTCUTS</span><h2>Quick Actions</h2></div></div>
+                <a href="members.html" class="action-card">Add Member <span>→</span></a>
+                <a href="bookings.html" class="action-card">Create Booking <span>→</span></a>
+                <a href="finance.html" class="action-card">Record Payment <span>→</span></a>
+                <a href="finance.html" class="action-card">Add Expense <span>→</span></a>
+            </article>
+        </section>
+    
+            </div>
+        </main>
+    </div>
+<script src="script.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+    import {
+        getFirestore,
+        doc,
+        setDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    import {
+    getAuth,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    import {
+        getStorage,
+        ref,
+        uploadString
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDbJMBU5f7qnly_G8rNFlnrLUfZkQolCs8",
+        authDomain: "tca-gym-management.firebaseapp.com",
+        projectId: "tca-gym-management",
+        storageBucket: "tca-gym-management.firebasestorage.app",
+        messagingSenderId: "686752972470",
+        appId: "1:686752972470:web:69df521e3b7b3cd0f63017",
+        measurementId: "G-HC377RVKQJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+
+   window.firebaseApp = app;
+   window.firebaseDB = db;
+   window.firebaseStorage = storage;
+   window.firebaseAuth = auth;
+
+    console.log("Firebase connected successfully!");
+    console.log("🔥 Firebase Storage connected successfully!");
+
+    // ===============================
+// FIREBASE LOGIN
+// ===============================
+
+const loginScreen = document.getElementById("loginScreen");
+const loginForm = document.getElementById("loginForm");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginError = document.getElementById("loginError");
+const togglePassword = document.getElementById("togglePassword");
+
+
+// Check whether the user is already logged in
+onAuthStateChanged(auth, (user) => {
+
+    if (user) {
+        // User is logged in
+        loginScreen.style.display = "none";
+        document.querySelector(".app-shell").style.display = "flex";
+
+        console.log("🔐 Logged in as:", user.email);
+
+    } else {
+        // User is NOT logged in
+        loginScreen.style.display = "flex";
+        document.querySelector(".app-shell").style.display = "none";
+
+        console.log("🔒 Login required.");
+    }
+
+});
+
+
+// Login form
+loginForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    loginError.textContent = "";
+
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+
+    try {
+
+        await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+        console.log("✅ Login successful!");
+
+    } catch (error) {
+
+        console.error("❌ Login failed:", error);
+
+        loginError.textContent =
+            "Incorrect email or password.";
+
+    }
+
+});
+
+
+// Show / hide password
+togglePassword.addEventListener("click", () => {
+
+    if (loginPassword.type === "password") {
+
+        loginPassword.type = "text";
+        togglePassword.textContent = "◉";
+
+    } else {
+
+        loginPassword.type = "password";
+        togglePassword.textContent = "◉";
+
+    }
+
+});
+
+    // Firestore gym data backup
+    const localGymData = localStorage.getItem("ironforge_gym_data_v1");
+
+    if (localGymData) {
+        try {
+            const gymData = JSON.parse(localGymData);
+
+            setDoc(doc(db, "gymData", "backup"), {
+                data: gymData,
+                backedUpAt: new Date().toISOString()
+            })
+            .then(() => {
+                console.log("🔥 Gym data backup successful!");
+            })
+            .catch((error) => {
+                console.error("❌ Gym data backup failed:", error);
+            });
+
+        } catch (error) {
+            console.error("❌ Could not read existing gym data:", error);
+        }
+    } else {
+        console.log("ℹ️ No existing local gym data found.");
+    }
+</script>
+
+</body>
+</html>
