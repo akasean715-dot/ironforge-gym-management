@@ -1886,12 +1886,7 @@
   });
 
   document.querySelector('.brand')?.addEventListener('click', () => {});
-
-  // Start shared Firestore synchronization
-  loadCloudData().then(() => {
-    cloudSyncReady = true;
-  });
-}
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 
@@ -3893,10 +3888,24 @@ async function loadCloudData() {
   });
 
   function init(){
-    injectUIStyles(); setupHeader(); setupProfilePhoto(); setupGlobalSearch(); renderCurrentPage();
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelector('.if-modal-backdrop')?.remove();});
-    // Make the logo always return to the dashboard and ensure internal links remain normal navigation.
-    document.querySelector('.brand')?.addEventListener('click',()=>{});
-  }
+    injectUIStyles();
+    setupHeader();
+    setupProfilePhoto();
+    setupGlobalSearch();
+    renderCurrentPage();
+
+    document.addEventListener('keydown', e => {
+        if(e.key === 'Escape'){
+            document.querySelector('.if-modal-backdrop')?.remove();
+        }
+    });
+
+    document.querySelector('.brand')?.addEventListener('click', () => {});
+
+    // Start shared Firestore synchronization
+    loadCloudData().then(() => {
+        cloudSyncReady = true;
+    });
+}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
