@@ -192,17 +192,18 @@
             </div>
         </main>
     </div>
-    <script src="firebase-connection.js"></script>
-<script src="script.js"></script>
 
+    
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
     import {
-        getFirestore,
-        doc,
-        setDoc
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    getFirestore,
+    doc,
+    setDoc,
+    getDoc,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     import {
     getAuth,
@@ -237,6 +238,23 @@
    window.firebaseDB = db;
    window.firebaseStorage = storage;
    window.firebaseAuth = auth;
+   window.TCAFirebaseReady = Promise.resolve({
+    app,
+    auth,
+    db,
+    storage,
+
+    sdk: {
+        firestore: {
+            doc,
+            setDoc,
+            getDoc,
+            onSnapshot
+        }
+    },
+
+    config: firebaseConfig
+});
 
     console.log("Firebase connected successfully!");
     console.log("🔥 Firebase Storage connected successfully!");
@@ -350,6 +368,10 @@ togglePassword.addEventListener("click", () => {
 </script>
 <script>
   if ("serviceWorker" in navigator) {
+        // Load the main application only after Firebase is ready
+    const appScript = document.createElement("script");
+    appScript.src = "script.js";
+    document.body.appendChild(appScript);
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("./service-worker.js")
         .then(() => {
