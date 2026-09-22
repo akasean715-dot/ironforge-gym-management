@@ -1,10 +1,7 @@
 /*
  * TRIBAL COMBAT ACADEMY — Firebase connection layer
- *
- * This file is intentionally isolated from script.js.
- * It only connects Firebase. It does NOT replace localStorage,
- * modify the UI, render charts, or change existing application logic.
  */
+
 (function () {
   'use strict';
 
@@ -20,45 +17,86 @@
 
   const SDK_VERSION = '12.2.1';
 
-  // Expose a safe promise so a future Firebase migration can use it
-  // without touching the existing application startup.
   window.TCAFirebaseReady = (async function () {
     try {
-      const base = 'https://www.gstatic.com/firebasejs/' + SDK_VERSION;
+      const base =
+        'https://www.gstatic.com/firebasejs/' + SDK_VERSION;
 
-      const [appSdk, authSdk, firestoreSdk, storageSdk] = await Promise.all([
+      const [
+        appSdk,
+        authSdk,
+        firestoreSdk,
+        storageSdk
+      ] = await Promise.all([
         import(base + '/firebase-app.js'),
         import(base + '/firebase-auth.js'),
         import(base + '/firebase-firestore.js'),
         import(base + '/firebase-storage.js')
       ]);
 
-      const app = appSdk.initializeApp(FIREBASE_CONFIG);
-      const auth = authSdk.getAuth(app);
-      const db = firestoreSdk.getFirestore(app);
-      const storage = storageSdk.getStorage(app);
+      let app;
+
+      /*
+       * Reuse Firebase if index.html already created it.
+       * Otherwise create the Firebase app here.
+       */
+      if (window.firebaseApp) {
+        app = window.firebaseApp;
+      } else {
+        app = appSdk.initializeApp(FIREBASE_CONFIG);
+        window.firebaseApp = app;
+      }
+
+      const auth =
+        window.firebaseAuth ||
+        authSdk.getAuth(app);
+
+      const db =
+        window.firebaseDB ||
+        firestoreSdk.getFirestore(app);
+
+      const storage =
+        window.firebaseStorage ||
+        storageSdk.getStorage(app);
+
+      window.firebaseAuth = auth;
+      window.firebaseDB = db;
+      window.firebaseStorage = storage;
 
       window.TCAFirebase = {
         app,
         auth,
         db,
         storage,
+
         sdk: {
           app: appSdk,
           auth: authSdk,
           firestore: firestoreSdk,
           storage: storageSdk
         },
+
         config: FIREBASE_CONFIG
       };
 
-      console.info('[TCA Firebase] Connected:', FIREBASE_CONFIG.projectId);
+      console.info(
+        '[TCA Firebase] Connected:',
+        FIREBASE_CONFIG.projectId
+      );
+
       return window.TCAFirebase;
+
     } catch (error) {
-      // Firebase must never be allowed to break the gym dashboard.
-      console.warn('[TCA Firebase] Connection unavailable. Dashboard continues normally.', error);
+
+      console.error(
+        '[TCA Firebase] Connection failed:',
+        error
+      );
+
       window.TCAFirebase = null;
+
       return null;
     }
   })();
+
 })();

@@ -1873,25 +1873,11 @@
   });
 
   function init(){
-  injectUIStyles();
-  setupHeader();
-  setupProfilePhoto();
-  setupGlobalSearch();
-  renderCurrentPage();
-
-  document.addEventListener('keydown', e => {
-    if(e.key === 'Escape'){
-      document.querySelector('.if-modal-backdrop')?.remove();
-    }
-  });
-
-  document.querySelector('.brand')?.addEventListener('click', () => {});
-
-  // Start shared Firestore synchronization
-  loadCloudData().then(() => {
-    cloudSyncReady = true;
-  });
-}
+    injectUIStyles(); setupHeader(); setupProfilePhoto(); setupGlobalSearch(); renderCurrentPage();
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelector('.if-modal-backdrop')?.remove();});
+    // Make the logo always return to the dashboard and ensure internal links remain normal navigation.
+    document.querySelector('.brand')?.addEventListener('click',()=>{});
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 
@@ -1957,174 +1943,11 @@
     } catch { return clone(seed); }
   }
   let data = loadData();
-  let cloudSyncReady = false;
-let cloudApplying = false;
-let cloudWriteTimer = null;
-
-async function saveToCloud() {
-  if (!cloudSyncReady || cloudApplying) return;
-
-  try {
-    const firebase = await window.TCAFirebaseReady;
-    if (!firebase || !firebase.db) return;
-
-    const { doc, setDoc } = firebase.sdk.firestore;
-
-    await setDoc(
-      doc(firebase.db, 'gymData', 'appData'),
-      {
-        data: clone(data),
-        updatedAt: new Date().toISOString()
-      },
-      { merge: true }
-    );
-
-    console.info('[IRONFORGE] Data synced to Firestore.');
-  } catch (error) {
-    console.warn('[IRONFORGE] Cloud sync failed. Local data is still safe.', error);
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('ironforge:data-changed'));
   }
-}
 
-function save() {
-  // Always keep the local copy
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-  // Keep the existing application event
-  window.dispatchEvent(new CustomEvent('ironforge:data-changed'));
-
-  // Sync to Firestore after cloud sync has been initialized
-  if (cloudSyncReady && !cloudApplying) {
-    clearTimeout(cloudWriteTimer);
-
-    cloudWriteTimer = setTimeout(() => {
-      saveToCloud();
-    }, 150);
-  }
-}
-async function loadCloudData() {
-  try {
-    const firebase = await window.TCAFirebaseReady;
-
-    if (!firebase || !firebase.db) {
-      console.warn('[IRONFORGE] Firebase is not available.');
-      return;
-    }
-
-    const { doc, getDoc, onSnapshot } = firebase.sdk.firestore;
-
-    const appDataRef = doc(
-      firebase.db,
-      'gymData',
-      'appData'
-    );
-
-    // ===============================
-    // LOAD SHARED DATA ON STARTUP
-    // ===============================
-
-    const cloudDoc = await getDoc(appDataRef);
-
-    if (cloudDoc.exists()) {
-
-      const cloudData = cloudDoc.data().data;
-
-      if (cloudData) {
-
-        cloudApplying = true;
-
-        data = {
-          ...clone(seed),
-          ...cloudData
-        };
-
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(data)
-        );
-
-        cloudApplying = false;
-
-        console.info(
-          '[IRONFORGE] Shared gym data loaded from Firestore.'
-        );
-
-        renderCurrentPage();
-      }
-
-    } else {
-
-      console.info(
-        '[IRONFORGE] No shared gym data found yet. Creating it...'
-      );
-
-      cloudSyncReady = true;
-
-      await saveToCloud();
-    }
-
-    cloudSyncReady = true;
-
-    // ===============================
-    // REAL-TIME FIRESTORE LISTENER
-    // ===============================
-
-    onSnapshot(
-      appDataRef,
-      (snapshot) => {
-
-        if (!snapshot.exists()) return;
-
-        const cloudData = snapshot.data().data;
-
-        if (!cloudData) return;
-
-        cloudApplying = true;
-
-        data = {
-          ...clone(seed),
-          ...cloudData
-        };
-
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(data)
-        );
-
-        cloudApplying = false;
-
-        console.info(
-          '[IRONFORGE] 🔄 Live data update received.'
-        );
-
-        renderCurrentPage();
-
-      },
-      (error) => {
-
-        cloudApplying = false;
-
-        console.warn(
-          '[IRONFORGE] Real-time sync listener failed.',
-          error
-        );
-
-      }
-    );
-
-    console.info(
-      '[IRONFORGE] 🔥 Real-time synchronization active.'
-    );
-
-  } catch (error) {
-
-    cloudApplying = false;
-
-    console.warn(
-      '[IRONFORGE] Could not load shared gym data.',
-      error
-    );
-  }
-}
   function getSettings() {
     const defaults = { gymName:'IRONFORGE', owner:'Admin', email:'admin@gym.com', phone:'+91 98765 43210', hours:'5:00 AM – 10:00 PM', currency:'INR', timezone:'Asia/Kolkata', paymentMethods:['Cash','UPI','Card'], notifications:{expiry:true,payments:true} };
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) }; } catch { return defaults; }
