@@ -1916,6 +1916,32 @@ async function loadCloudData() {
       if(el.dataset.bookingView) el.onclick=e=>{e.preventDefault();toggleBookingView(el.dataset.bookingView);};
       if(text==='Save Changes') el.onclick=e=>{e.preventDefault();saveSettingsFromPage();};
       if(text.includes('Open Report')) el.onclick=e=>{e.preventDefault();reportModal(text);};
+
+      // Dashboard Quick Action button
+      if(text==='+ Quick Action'){
+        el.onclick=e=>{
+          e.preventDefault();
+          e.stopPropagation();
+
+          const wrap=modal('Quick Actions', `
+            <div style="display:grid;gap:10px">
+              <button class="btn btn-primary" data-quick="member">+ Add Member</button>
+              <button class="btn btn-primary" data-quick="booking">+ Add Booking</button>
+              <button class="btn btn-primary" data-quick="payment">+ Record Payment</button>
+              <button class="btn btn-primary" data-quick="income">+ Add Income</button>
+              <button class="btn btn-primary" data-quick="expense">+ Add Expense</button>
+              <button class="btn btn-primary" data-quick="trainer">+ Add Trainer</button>
+            </div>
+          `);
+
+          wrap.querySelector('[data-quick="member"]').onclick=()=>{wrap.remove();memberModal();};
+          wrap.querySelector('[data-quick="booking"]').onclick=()=>{wrap.remove();bookingModal();};
+          wrap.querySelector('[data-quick="payment"]').onclick=()=>{wrap.remove();paymentModal();};
+          wrap.querySelector('[data-quick="income"]').onclick=()=>{wrap.remove();transactionModal('Income');};
+          wrap.querySelector('[data-quick="expense"]').onclick=()=>{wrap.remove();transactionModal('Expense');};
+          wrap.querySelector('[data-quick="trainer"]').onclick=()=>{wrap.remove();trainerModal();};
+        };
+      }
     });
   }
 
