@@ -600,6 +600,7 @@ td a{color:var(--gold);font-weight:700}
 .avatar.large{width:70px;height:70px;font-size:17px;margin-bottom:15px}
 .trainer-card h2{margin:0;font-family:var(--font-heading);font-size:16px}
 .trainer-card>p{margin:3px 0 18px;color:#6e7b86;font-size:10px}
+.trainer-card .trainer-photo{background-size:cover;background-position:center;background-repeat:no-repeat}
 .trainer-stats{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -1920,3 +1921,5 @@ td a{
         font-size: 15px !important;
     }
 }
+/* Trainer profile photo control */
+.trainer-photo-change-btn{white-space:nowrap}

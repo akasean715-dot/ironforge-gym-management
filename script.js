@@ -1085,6 +1085,45 @@ async function loadCloudData() {
     };
   }
 
+  function resizeTrainerPhoto(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read image.'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Could not load image.'));
+        img.onload = () => {
+          const size = 512;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if(!ctx) return reject(new Error('Image processing is unavailable.'));
+          const scale = Math.max(size / img.width, size / img.height);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const x = (size - drawW) / 2;
+          const y = (size - drawH) / 2;
+          ctx.fillStyle = '#11151a';
+          ctx.fillRect(0, 0, size, size);
+          ctx.drawImage(img, x, y, drawW, drawH);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function trainerAvatarMarkup(trainer, sizeClass=''){
+    const name=String(trainer?.name||'Unnamed Trainer');
+    const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'TR';
+    const photo=String(trainer?.photo||'').trim();
+    return photo
+      ? `<div class="avatar trainer-photo ${sizeClass}" style="background-image:url('${esc(photo)}');background-size:cover;background-position:center;background-repeat:no-repeat" aria-label="${esc(name)} profile photo"></div>`
+      : `<div class="avatar ${sizeClass}">${esc(initials)}</div>`;
+  }
+
   function trainerModal(trainer=null){
     const t=trainer||{};
     const isEdit=!!trainer;
@@ -1155,7 +1194,8 @@ async function loadCloudData() {
         salary,
         sessions,
         revenue,
-        status:o.status||'Active'
+        status:o.status||'Active',
+        photo:String(t.photo||'')
       };
 
       if(isEdit){
@@ -1620,6 +1660,37 @@ async function loadCloudData() {
       </div>`;
   }
 
+  function changeTrainerPhoto(index){
+    const trainer=data.trainers?.[Number(index)];
+    if(!trainer) return;
+
+    const input=document.createElement('input');
+    input.type='file';
+    input.accept='image/*';
+    input.style.display='none';
+    document.body.appendChild(input);
+
+    input.addEventListener('change',async()=>{
+      const file=input.files?.[0];
+      input.remove();
+      if(!file) return;
+      if(!file.type.startsWith('image/')) return toast('Please choose an image file.','error');
+      if(file.size>10*1024*1024) return toast('Please choose an image smaller than 10 MB.','error');
+
+      try{
+        trainer.photo=await resizeTrainerPhoto(file);
+        save();
+        renderCurrentPage();
+        toast(`${trainer.name || 'Trainer'} photo updated successfully.`);
+      }catch(error){
+        console.warn('[IRONFORGE] Trainer photo update failed.',error);
+        toast('Could not update the trainer photo.','error');
+      }
+    },{once:true});
+
+    input.click();
+  }
+
   function renderTrainers(){
     const grid=document.querySelector('.trainer-grid');
     if(!grid) return;
@@ -1644,7 +1715,6 @@ async function loadCloudData() {
 
     grid.innerHTML=trainers.map((t,index)=>{
       const name=String(t.name||'Unnamed Trainer');
-      const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'TR';
       const status=String(t.status||'Active');
       const members=Math.max(0,Number(t.members)||0);
       const monthlyFee=Math.max(0,Number(t.monthlyFee)||0);
@@ -1654,7 +1724,7 @@ async function loadCloudData() {
       const sessions=Math.max(0,Number(t.sessions)||0);
 
       return `<article class="trainer-card">
-        <div class="avatar">${esc(initials)}</div>
+        ${trainerAvatarMarkup(t)}
         <span class="badge ${statusClass(status)}">${esc(status)}</span>
         <h2>${esc(name)}</h2>
         <p>${esc(t.specialty||'Personal Trainer')}</p>
@@ -1670,6 +1740,7 @@ async function loadCloudData() {
         <div style="margin-top:13px;color:#737d82;font-size:11px">${sessions} sessions this period</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
           <button type="button" class="btn btn-secondary trainer-view-btn" data-trainer-index="${index}">View Profile</button>
+          <button type="button" class="btn btn-secondary trainer-photo-change-btn" data-trainer-index="${index}">Change Photo</button>
           <button type="button" class="btn btn-secondary trainer-edit-btn" data-trainer-index="${index}">Edit</button>
           <button type="button" class="btn btn-secondary trainer-remove-btn" data-trainer-index="${index}" style="color:#e68181;border-color:rgba(225,100,100,.22);background:rgba(225,100,100,.08)">Remove</button>
         </div>
@@ -1679,6 +1750,10 @@ async function loadCloudData() {
     grid.querySelectorAll('.trainer-view-btn').forEach(btn=>btn.addEventListener('click',()=>{
       const t=data.trainers[Number(btn.dataset.trainerIndex)];
       if(t) trainerModal(t);
+    }));
+
+    grid.querySelectorAll('.trainer-photo-change-btn').forEach(btn=>btn.addEventListener('click',()=>{
+      changeTrainerPhoto(Number(btn.dataset.trainerIndex));
     }));
 
     grid.querySelectorAll('.trainer-edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
