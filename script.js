@@ -8,7 +8,7 @@
 
   const STORAGE_KEY = 'ironforge_gym_data_v1';
   const SETTINGS_KEY = 'ironforge_settings_v1';
-  const today = new Date('2026-09-19T12:00:00');
+  const today = new Date();
 
   const seed = {
     members: [
@@ -84,32 +84,6 @@ async function saveToCloud() {
   }
 }
 
-// Settings are separate from the main gym data, so keep them synced too.
-// They live in the same Firestore document to avoid creating another data path.
-async function saveSettingsToCloud() {
-  if (!cloudSyncReady || cloudApplying) return;
-
-  try {
-    const firebase = await window.TCAFirebaseReady;
-    if (!firebase || !firebase.db) return;
-
-    const { doc, setDoc } = firebase.sdk.firestore;
-
-    await setDoc(
-      doc(firebase.db, 'gymData', 'appData'),
-      {
-        settings: clone(settings),
-        settingsUpdatedAt: new Date().toISOString()
-      },
-      { merge: true }
-    );
-
-    console.info('[IRONFORGE] Settings synced to Firestore.');
-  } catch (error) {
-    console.warn('[IRONFORGE] Settings cloud sync failed. Local settings are still safe.', error);
-  }
-}
-
 function save() {
   // Always keep the local copy
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -151,13 +125,7 @@ async function loadCloudData() {
 
     if (cloudDoc.exists()) {
 
-      const cloudDocData = cloudDoc.data();
-    const cloudData = cloudDocData.data;
-
-      if (cloudDocData.settings) {
-        settings = { ...getSettings(), ...clone(cloudDocData.settings) };
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      }
+      const cloudData = cloudDoc.data().data;
 
       if (cloudData) {
 
@@ -205,18 +173,9 @@ async function loadCloudData() {
 
         if (!snapshot.exists()) return;
 
-        const snapshotData = snapshot.data();
-        const cloudData = snapshotData.data;
+        const cloudData = snapshot.data().data;
 
-        if (snapshotData.settings) {
-          settings = { ...getSettings(), ...clone(snapshotData.settings) };
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        }
-
-        if (!cloudData) {
-          renderCurrentPage();
-          return;
-        }
+        if (!cloudData) return;
 
         cloudApplying = true;
 
@@ -266,22 +225,11 @@ async function loadCloudData() {
   }
 }
   function getSettings() {
-    const defaults = { gymName:'IRONFORGE', owner:'Admin', email:'admin@gym.com', phone:'+91 98765 43210', address:'123 Fitness Street', hours:'5:00 AM – 10:00 PM', currency:'INR', timezone:'Asia/Kolkata', paymentMethods:['Cash','UPI','Card'], notifications:{expiry:true,payments:true} };
+    const defaults = { gymName:'IRONFORGE', owner:'Admin', email:'admin@gym.com', phone:'+91 98765 43210', hours:'5:00 AM – 10:00 PM', currency:'INR', timezone:'Asia/Kolkata', paymentMethods:['Cash','UPI','Card'], notifications:{expiry:true,payments:true} };
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) }; } catch { return defaults; }
   }
   let settings = getSettings();
-  let settingsWriteTimer = null;
-
-  function saveSettings() {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-
-    if (cloudSyncReady && !cloudApplying) {
-      clearTimeout(settingsWriteTimer);
-      settingsWriteTimer = setTimeout(() => {
-        saveSettingsToCloud();
-      }, 150);
-    }
-  }
+  function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 
   const money = n => `${settings.currency === 'USD' ? '$' : '₹'}${Number(n || 0).toLocaleString('en-IN')}`;
   const fmtDate = iso => {
@@ -289,7 +237,7 @@ async function loadCloudData() {
     const d = new Date(`${iso}T00:00:00`);
     return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   };
-  const isoToday = '2026-09-19';
+  const isoToday = new Date().toISOString().slice(0,10);
   const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const titleCase = s => String(s).replace(/\b\w/g, x => x.toUpperCase());
   const page = location.pathname.split('/').pop() || 'index.html';
@@ -696,29 +644,6 @@ async function loadCloudData() {
         const selects=[...document.querySelectorAll('.settings-content select')];
         if(selects[0]) selects[0].value=settings.currency==='USD'?'USD — $':'INR — ₹';
         if(selects[1] && settings.timezone) selects[1].value=settings.timezone;
-
-        const address=document.querySelector('.settings-content textarea');
-        if(address) address.value=settings.address || '';
-
-        const gymPanels=document.querySelectorAll('.settings-content .panel');
-        const gymPanel=[...gymPanels].find(el=>el.id==='gym');
-        const hoursInput=gymPanel?.querySelector('input[type="text"]');
-        if(hoursInput) hoursInput.value=settings.hours || '';
-
-        const paymentPanel=document.getElementById('payments');
-        if(paymentPanel){
-          paymentPanel.querySelectorAll('.toggle-row input[type="checkbox"]').forEach(cb=>{
-            const label=(cb.closest('.toggle-row')?.querySelector('b')?.textContent || '').trim();
-            cb.checked=Array.isArray(settings.paymentMethods) && settings.paymentMethods.includes(label);
-          });
-        }
-
-        const notificationPanel=document.getElementById('notifications');
-        if(notificationPanel){
-          const boxes=notificationPanel.querySelectorAll('.toggle-row input[type="checkbox"]');
-          if(boxes[0]) boxes[0].checked=settings.notifications?.expiry !== false;
-          if(boxes[1]) boxes[1].checked=settings.notifications?.payments !== false;
-        }
       }
     };
     applySavedSettingsToUI();
@@ -987,14 +912,18 @@ async function loadCloudData() {
     if(!holder) return;
     const members=activeMembers();
     const total=members.length;
+    const isExpiringSoon = m => {
+      const days = daysUntil(m.expiry);
+      return m.status === 'Expiring' || (days >= 0 && days <= 7);
+    };
     const counts={
-      Active:members.filter(m=>m.status==='Active').length,
-      Expiring:members.filter(m=>m.status==='Expiring').length,
-      Expired:members.filter(m=>m.status==='Expired').length,
+      Active:members.filter(m=>m.status==='Active' && !isExpiringSoon(m)).length,
+      Expiring:members.filter(isExpiringSoon).length,
+      Expired:members.filter(m=>m.status==='Expired' || daysUntil(m.expiry) < 0).length,
       Pending:members.filter(m=>['Pending','Pending Payment'].includes(m.status)).length
     };
     const values=Object.values(counts);
-    const colors=['#ff2d38','#ff737a','#c91422','#727b84'];
+    const colors=['#ff0000','#7b0202','#2d0000','#727b84'];
     const radius=50,circ=2*Math.PI*radius;
     let offset=0;
     const segments=values.map((v,i)=>{
@@ -1085,45 +1014,6 @@ async function loadCloudData() {
     };
   }
 
-  function resizeTrainerPhoto(file){
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('Could not read image.'));
-      reader.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error('Could not load image.'));
-        img.onload = () => {
-          const size = 512;
-          const canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          if(!ctx) return reject(new Error('Image processing is unavailable.'));
-          const scale = Math.max(size / img.width, size / img.height);
-          const drawW = img.width * scale;
-          const drawH = img.height * scale;
-          const x = (size - drawW) / 2;
-          const y = (size - drawH) / 2;
-          ctx.fillStyle = '#11151a';
-          ctx.fillRect(0, 0, size, size);
-          ctx.drawImage(img, x, y, drawW, drawH);
-          resolve(canvas.toDataURL('image/jpeg', 0.82));
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function trainerAvatarMarkup(trainer, sizeClass=''){
-    const name=String(trainer?.name||'Unnamed Trainer');
-    const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'TR';
-    const photo=String(trainer?.photo||'').trim();
-    return photo
-      ? `<div class="avatar trainer-photo ${sizeClass}" style="background-image:url('${esc(photo)}');background-size:cover;background-position:center;background-repeat:no-repeat" aria-label="${esc(name)} profile photo"></div>`
-      : `<div class="avatar ${sizeClass}">${esc(initials)}</div>`;
-  }
-
   function trainerModal(trainer=null){
     const t=trainer||{};
     const isEdit=!!trainer;
@@ -1194,8 +1084,7 @@ async function loadCloudData() {
         salary,
         sessions,
         revenue,
-        status:o.status||'Active',
-        photo:String(t.photo||'')
+        status:o.status||'Active'
       };
 
       if(isEdit){
@@ -1660,37 +1549,6 @@ async function loadCloudData() {
       </div>`;
   }
 
-  function changeTrainerPhoto(index){
-    const trainer=data.trainers?.[Number(index)];
-    if(!trainer) return;
-
-    const input=document.createElement('input');
-    input.type='file';
-    input.accept='image/*';
-    input.style.display='none';
-    document.body.appendChild(input);
-
-    input.addEventListener('change',async()=>{
-      const file=input.files?.[0];
-      input.remove();
-      if(!file) return;
-      if(!file.type.startsWith('image/')) return toast('Please choose an image file.','error');
-      if(file.size>10*1024*1024) return toast('Please choose an image smaller than 10 MB.','error');
-
-      try{
-        trainer.photo=await resizeTrainerPhoto(file);
-        save();
-        renderCurrentPage();
-        toast(`${trainer.name || 'Trainer'} photo updated successfully.`);
-      }catch(error){
-        console.warn('[IRONFORGE] Trainer photo update failed.',error);
-        toast('Could not update the trainer photo.','error');
-      }
-    },{once:true});
-
-    input.click();
-  }
-
   function renderTrainers(){
     const grid=document.querySelector('.trainer-grid');
     if(!grid) return;
@@ -1715,6 +1573,7 @@ async function loadCloudData() {
 
     grid.innerHTML=trainers.map((t,index)=>{
       const name=String(t.name||'Unnamed Trainer');
+      const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'TR';
       const status=String(t.status||'Active');
       const members=Math.max(0,Number(t.members)||0);
       const monthlyFee=Math.max(0,Number(t.monthlyFee)||0);
@@ -1724,7 +1583,7 @@ async function loadCloudData() {
       const sessions=Math.max(0,Number(t.sessions)||0);
 
       return `<article class="trainer-card">
-        ${trainerAvatarMarkup(t)}
+        <div class="avatar">${esc(initials)}</div>
         <span class="badge ${statusClass(status)}">${esc(status)}</span>
         <h2>${esc(name)}</h2>
         <p>${esc(t.specialty||'Personal Trainer')}</p>
@@ -1740,7 +1599,6 @@ async function loadCloudData() {
         <div style="margin-top:13px;color:#737d82;font-size:11px">${sessions} sessions this period</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
           <button type="button" class="btn btn-secondary trainer-view-btn" data-trainer-index="${index}">View Profile</button>
-          <button type="button" class="btn btn-secondary trainer-photo-change-btn" data-trainer-index="${index}">Change Photo</button>
           <button type="button" class="btn btn-secondary trainer-edit-btn" data-trainer-index="${index}">Edit</button>
           <button type="button" class="btn btn-secondary trainer-remove-btn" data-trainer-index="${index}" style="color:#e68181;border-color:rgba(225,100,100,.22);background:rgba(225,100,100,.08)">Remove</button>
         </div>
@@ -1750,10 +1608,6 @@ async function loadCloudData() {
     grid.querySelectorAll('.trainer-view-btn').forEach(btn=>btn.addEventListener('click',()=>{
       const t=data.trainers[Number(btn.dataset.trainerIndex)];
       if(t) trainerModal(t);
-    }));
-
-    grid.querySelectorAll('.trainer-photo-change-btn').forEach(btn=>btn.addEventListener('click',()=>{
-      changeTrainerPhoto(Number(btn.dataset.trainerIndex));
     }));
 
     grid.querySelectorAll('.trainer-edit-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1916,32 +1770,6 @@ async function loadCloudData() {
       if(el.dataset.bookingView) el.onclick=e=>{e.preventDefault();toggleBookingView(el.dataset.bookingView);};
       if(text==='Save Changes') el.onclick=e=>{e.preventDefault();saveSettingsFromPage();};
       if(text.includes('Open Report')) el.onclick=e=>{e.preventDefault();reportModal(text);};
-
-      // Dashboard Quick Action button
-      if(text==='+ Quick Action'){
-        el.onclick=e=>{
-          e.preventDefault();
-          e.stopPropagation();
-
-          const wrap=modal('Quick Actions', `
-            <div style="display:grid;gap:10px">
-              <button class="btn btn-primary" data-quick="member">+ Add Member</button>
-              <button class="btn btn-primary" data-quick="booking">+ Add Booking</button>
-              <button class="btn btn-primary" data-quick="payment">+ Record Payment</button>
-              <button class="btn btn-primary" data-quick="income">+ Add Income</button>
-              <button class="btn btn-primary" data-quick="expense">+ Add Expense</button>
-              <button class="btn btn-primary" data-quick="trainer">+ Add Trainer</button>
-            </div>
-          `);
-
-          wrap.querySelector('[data-quick="member"]').onclick=()=>{wrap.remove();memberModal();};
-          wrap.querySelector('[data-quick="booking"]').onclick=()=>{wrap.remove();bookingModal();};
-          wrap.querySelector('[data-quick="payment"]').onclick=()=>{wrap.remove();paymentModal();};
-          wrap.querySelector('[data-quick="income"]').onclick=()=>{wrap.remove();transactionModal('Income');};
-          wrap.querySelector('[data-quick="expense"]').onclick=()=>{wrap.remove();transactionModal('Expense');};
-          wrap.querySelector('[data-quick="trainer"]').onclick=()=>{wrap.remove();trainerModal();};
-        };
-      }
     });
   }
 
@@ -2064,30 +1892,6 @@ async function loadCloudData() {
     const selects=[...document.querySelectorAll('.settings-content select')];
     if(selects[0]) settings.currency=selects[0].value.includes('USD')?'USD':'INR';
     if(selects[1] && selects[1].value) settings.timezone=selects[1].value;
-
-    const address=document.querySelector('.settings-content textarea');
-    if(address) settings.address=address.value.trim() || '123 Fitness Street';
-
-    const gymPanel=document.getElementById('gym');
-    const hoursInput=gymPanel?.querySelector('input[type="text"]');
-    if(hoursInput) settings.hours=hoursInput.value.trim() || '5:00 AM – 10:00 PM';
-
-    const paymentPanel=document.getElementById('payments');
-    if(paymentPanel){
-      settings.paymentMethods=[...paymentPanel.querySelectorAll('.toggle-row')]
-        .filter(row=>row.querySelector('input[type="checkbox"]')?.checked)
-        .map(row=>(row.querySelector('b')?.textContent || '').trim())
-        .filter(Boolean);
-    }
-
-    const notificationPanel=document.getElementById('notifications');
-    if(notificationPanel){
-      const boxes=notificationPanel.querySelectorAll('.toggle-row input[type="checkbox"]');
-      settings.notifications={
-        expiry: boxes[0]?.checked !== false,
-        payments: boxes[1]?.checked !== false
-      };
-    }
 
     saveSettings();
 
