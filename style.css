@@ -601,6 +601,7 @@ td a{color:var(--gold);font-weight:700}
 .trainer-card h2{margin:0;font-family:var(--font-heading);font-size:16px}
 .trainer-card>p{margin:3px 0 18px;color:#6e7b86;font-size:10px}
 .trainer-card .trainer-photo{background-size:cover;background-position:center;background-repeat:no-repeat}
+<<<<<<< HEAD
 .trainer-profile-settings-list{display:grid;gap:10px}
 .trainer-profile-setting-row{display:flex;align-items:center;gap:13px;padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:12px;background:rgba(255,255,255,.018)}
 .trainer-profile-setting-row .avatar{flex:0 0 54px;width:54px;height:54px;margin:0;overflow:hidden}
@@ -608,6 +609,8 @@ td a{color:var(--gold);font-weight:700}
 .trainer-profile-setting-info strong{display:block;color:#eef2f4;font-size:12px}
 .trainer-profile-setting-info small{display:block;margin-top:3px;color:#71808b;font-size:9px}
 .trainer-profile-setting-row .btn{white-space:nowrap}
+=======
+>>>>>>> d54271d92459ab5c4da563a81ea2437c4720bd0a
 .trainer-stats{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -1928,5 +1931,61 @@ td a{
 
     .chart-placeholder.tall .if-chart-wrap > div:first-child > div strong {
         font-size: 15px !important;
+    }
+}
+/* Trainer profile photo control */
+.trainer-photo-change-btn{white-space:nowrap}
+
+/* =========================================================
+   MEMBERSHIP + ATTENDANCE CHARTS — MOBILE ONLY
+   Keep desktop charts unchanged.
+   ========================================================= */
+@media (max-width: 720px) {
+    /* Membership Performance chart */
+    body:has(.plan-grid) .chart-placeholder.tall {
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.plan-grid) .chart-placeholder.tall .if-chart-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.plan-grid) .chart-placeholder.tall .if-chart {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Attendance Trend chart */
+    body:has(.stats-grid.compact) .chart-placeholder.tall {
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.stats-grid.compact) .chart-placeholder.tall .if-chart-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.stats-grid.compact) .chart-placeholder.tall .if-chart {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
     }
 }
