@@ -936,12 +936,12 @@ async function loadCloudData() {
     const panel=holder.closest('.panel');
     const legend=panel?.querySelector('.legend-list');
     if(legend){
-      legend.innerHTML=`
-        <li><span class="dot active"></span>Active <b>${counts.Active}</b></li>
-        <li><span class="dot warning"></span>Expiring Soon <b>${counts.Expiring}</b></li>
-        <li><span class="dot danger"></span>Expired <b>${counts.Expired}</b></li>
-        <li><span class="dot muted"></span>Pending Payment <b>${counts.Pending}</b></li>`;
-    }
+    legend.innerHTML=`
+    <li><span class="dot" style="background:#ff0000"></span>Active <b>${counts.Active}</b></li>
+    <li><span class="dot" style="background:#7b0202"></span>Expiring Soon <b>${counts.Expiring}</b></li>
+    <li><span class="dot" style="background:#2d0000"></span>Expired <b>${counts.Expired}</b></li>
+    <li><span class="dot" style="background:#727b84"></span>Pending Payment <b>${counts.Pending}</b></li>`;
+   }
   }
 
 
