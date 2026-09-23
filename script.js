@@ -84,6 +84,32 @@ async function saveToCloud() {
   }
 }
 
+// Settings are separate from the main gym data, so keep them synced too.
+// They live in the same Firestore document to avoid creating another data path.
+async function saveSettingsToCloud() {
+  if (!cloudSyncReady || cloudApplying) return;
+
+  try {
+    const firebase = await window.TCAFirebaseReady;
+    if (!firebase || !firebase.db) return;
+
+    const { doc, setDoc } = firebase.sdk.firestore;
+
+    await setDoc(
+      doc(firebase.db, 'gymData', 'appData'),
+      {
+        settings: clone(settings),
+        settingsUpdatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
+
+    console.info('[IRONFORGE] Settings synced to Firestore.');
+  } catch (error) {
+    console.warn('[IRONFORGE] Settings cloud sync failed. Local settings are still safe.', error);
+  }
+}
+
 function save() {
   // Always keep the local copy
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -125,7 +151,13 @@ async function loadCloudData() {
 
     if (cloudDoc.exists()) {
 
-      const cloudData = cloudDoc.data().data;
+      const cloudDocData = cloudDoc.data();
+    const cloudData = cloudDocData.data;
+
+      if (cloudDocData.settings) {
+        settings = { ...getSettings(), ...clone(cloudDocData.settings) };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      }
 
       if (cloudData) {
 
@@ -173,9 +205,18 @@ async function loadCloudData() {
 
         if (!snapshot.exists()) return;
 
-        const cloudData = snapshot.data().data;
+        const snapshotData = snapshot.data();
+        const cloudData = snapshotData.data;
 
-        if (!cloudData) return;
+        if (snapshotData.settings) {
+          settings = { ...getSettings(), ...clone(snapshotData.settings) };
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        }
+
+        if (!cloudData) {
+          renderCurrentPage();
+          return;
+        }
 
         cloudApplying = true;
 
@@ -225,11 +266,22 @@ async function loadCloudData() {
   }
 }
   function getSettings() {
-    const defaults = { gymName:'IRONFORGE', owner:'Admin', email:'admin@gym.com', phone:'+91 98765 43210', hours:'5:00 AM – 10:00 PM', currency:'INR', timezone:'Asia/Kolkata', paymentMethods:['Cash','UPI','Card'], notifications:{expiry:true,payments:true} };
+    const defaults = { gymName:'IRONFORGE', owner:'Admin', email:'admin@gym.com', phone:'+91 98765 43210', address:'123 Fitness Street', hours:'5:00 AM – 10:00 PM', currency:'INR', timezone:'Asia/Kolkata', paymentMethods:['Cash','UPI','Card'], notifications:{expiry:true,payments:true} };
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}) }; } catch { return defaults; }
   }
   let settings = getSettings();
-  function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+  let settingsWriteTimer = null;
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+
+    if (cloudSyncReady && !cloudApplying) {
+      clearTimeout(settingsWriteTimer);
+      settingsWriteTimer = setTimeout(() => {
+        saveSettingsToCloud();
+      }, 150);
+    }
+  }
 
   const money = n => `${settings.currency === 'USD' ? '$' : '₹'}${Number(n || 0).toLocaleString('en-IN')}`;
   const fmtDate = iso => {
@@ -644,6 +696,29 @@ async function loadCloudData() {
         const selects=[...document.querySelectorAll('.settings-content select')];
         if(selects[0]) selects[0].value=settings.currency==='USD'?'USD — $':'INR — ₹';
         if(selects[1] && settings.timezone) selects[1].value=settings.timezone;
+
+        const address=document.querySelector('.settings-content textarea');
+        if(address) address.value=settings.address || '';
+
+        const gymPanels=document.querySelectorAll('.settings-content .panel');
+        const gymPanel=[...gymPanels].find(el=>el.id==='gym');
+        const hoursInput=gymPanel?.querySelector('input[type="text"]');
+        if(hoursInput) hoursInput.value=settings.hours || '';
+
+        const paymentPanel=document.getElementById('payments');
+        if(paymentPanel){
+          paymentPanel.querySelectorAll('.toggle-row input[type="checkbox"]').forEach(cb=>{
+            const label=(cb.closest('.toggle-row')?.querySelector('b')?.textContent || '').trim();
+            cb.checked=Array.isArray(settings.paymentMethods) && settings.paymentMethods.includes(label);
+          });
+        }
+
+        const notificationPanel=document.getElementById('notifications');
+        if(notificationPanel){
+          const boxes=notificationPanel.querySelectorAll('.toggle-row input[type="checkbox"]');
+          if(boxes[0]) boxes[0].checked=settings.notifications?.expiry !== false;
+          if(boxes[1]) boxes[1].checked=settings.notifications?.payments !== false;
+        }
       }
     };
     applySavedSettingsToUI();
@@ -1888,6 +1963,30 @@ async function loadCloudData() {
     const selects=[...document.querySelectorAll('.settings-content select')];
     if(selects[0]) settings.currency=selects[0].value.includes('USD')?'USD':'INR';
     if(selects[1] && selects[1].value) settings.timezone=selects[1].value;
+
+    const address=document.querySelector('.settings-content textarea');
+    if(address) settings.address=address.value.trim() || '123 Fitness Street';
+
+    const gymPanel=document.getElementById('gym');
+    const hoursInput=gymPanel?.querySelector('input[type="text"]');
+    if(hoursInput) settings.hours=hoursInput.value.trim() || '5:00 AM – 10:00 PM';
+
+    const paymentPanel=document.getElementById('payments');
+    if(paymentPanel){
+      settings.paymentMethods=[...paymentPanel.querySelectorAll('.toggle-row')]
+        .filter(row=>row.querySelector('input[type="checkbox"]')?.checked)
+        .map(row=>(row.querySelector('b')?.textContent || '').trim())
+        .filter(Boolean);
+    }
+
+    const notificationPanel=document.getElementById('notifications');
+    if(notificationPanel){
+      const boxes=notificationPanel.querySelectorAll('.toggle-row input[type="checkbox"]');
+      settings.notifications={
+        expiry: boxes[0]?.checked !== false,
+        payments: boxes[1]?.checked !== false
+      };
+    }
 
     saveSettings();
 
