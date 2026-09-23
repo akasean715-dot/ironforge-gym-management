@@ -1923,3 +1923,57 @@ td a{
 }
 /* Trainer profile photo control */
 .trainer-photo-change-btn{white-space:nowrap}
+
+/* =========================================================
+   MEMBERSHIP + ATTENDANCE CHARTS — MOBILE ONLY
+   Keep desktop charts unchanged.
+   ========================================================= */
+@media (max-width: 720px) {
+    /* Membership Performance chart */
+    body:has(.plan-grid) .chart-placeholder.tall {
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.plan-grid) .chart-placeholder.tall .if-chart-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.plan-grid) .chart-placeholder.tall .if-chart {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Attendance Trend chart */
+    body:has(.stats-grid.compact) .chart-placeholder.tall {
+        width: 100% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.stats-grid.compact) .chart-placeholder.tall .if-chart-wrap {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    body:has(.stats-grid.compact) .chart-placeholder.tall .if-chart {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
