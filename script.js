@@ -1085,6 +1085,115 @@ async function loadCloudData() {
     };
   }
 
+  function resizeTrainerPhoto(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read image.'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Could not load image.'));
+        img.onload = () => {
+          const size = 512;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if(!ctx) return reject(new Error('Image processing is unavailable.'));
+          const scale = Math.max(size / img.width, size / img.height);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const x = (size - drawW) / 2;
+          const y = (size - drawH) / 2;
+          ctx.fillStyle = '#11151a';
+          ctx.fillRect(0, 0, size, size);
+          ctx.drawImage(img, x, y, drawW, drawH);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function trainerAvatarMarkup(trainer, sizeClass=''){
+    const name=String(trainer?.name||'Unnamed Trainer');
+    const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()||'TR';
+    const photo=String(trainer?.photo||'').trim();
+    return photo
+      ? `<div class="avatar trainer-photo ${sizeClass}" style="background-image:url('${esc(photo)}');background-size:cover;background-position:center;background-repeat:no-repeat" aria-label="${esc(name)} profile photo"></div>`
+      : `<div class="avatar ${sizeClass}">${esc(initials)}</div>`;
+  }
+
+  function renderTrainerProfilesSettings(){
+    if(page!=='settings.html') return;
+    const holder=document.getElementById('trainer-profiles-list');
+    if(!holder) return;
+    const trainers=Array.isArray(data.trainers)?data.trainers:[];
+    if(!trainers.length){
+      holder.innerHTML='<div class="if-empty">No trainers yet. Add a trainer from the Trainers page first.</div>';
+      return;
+    }
+    holder.innerHTML=trainers.map((t,index)=>{
+      const name=String(t.name||'Unnamed Trainer');
+      return `<div class="trainer-profile-setting-row">
+        ${trainerAvatarMarkup(t,'large')}
+        <div class="trainer-profile-setting-info">
+          <strong>${esc(name)}</strong>
+          <small>${esc(t.specialty||'Personal Trainer')}</small>
+        </div>
+        <button type="button" class="btn btn-secondary trainer-photo-change-btn" data-trainer-index="${index}">Change Photo</button>
+        ${t.photo ? `<button type="button" class="btn btn-secondary trainer-photo-remove-btn" data-trainer-index="${index}" aria-label="Remove photo">Remove</button>` : ''}
+      </div>`;
+    }).join('');
+
+    holder.querySelectorAll('.trainer-photo-change-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const index=Number(btn.dataset.trainerIndex);
+        const trainer=data.trainers[index];
+        if(!trainer) return;
+        const input=document.createElement('input');
+        input.type='file';
+        input.accept='image/*';
+        input.style.display='none';
+        document.body.appendChild(input);
+        input.addEventListener('change',async()=>{
+          const file=input.files?.[0];
+          input.remove();
+          if(!file) return;
+          if(!file.type.startsWith('image/')) return toast('Please choose an image file.','error');
+          if(file.size>10*1024*1024) return toast('Please choose an image smaller than 10 MB.','error');
+          try{
+            btn.disabled=true;
+            btn.textContent='Saving...';
+            trainer.photo=await resizeTrainerPhoto(file);
+            save();
+            renderTrainerProfilesSettings();
+            toast(`${trainer.name || 'Trainer'} photo updated successfully.`);
+          }catch(error){
+            console.warn('[IRONFORGE] Trainer photo update failed.',error);
+            toast('Could not update the trainer photo.','error');
+          }finally{
+            if(input.isConnected) input.remove();
+          }
+        },{once:true});
+        input.click();
+      });
+    });
+
+    holder.querySelectorAll('.trainer-photo-remove-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const index=Number(btn.dataset.trainerIndex);
+        const trainer=data.trainers[index];
+        if(!trainer) return;
+        if(!confirm(`Remove ${trainer.name || 'this trainer'}'s profile photo?`)) return;
+        delete trainer.photo;
+        save();
+        renderTrainerProfilesSettings();
+        toast('Trainer photo removed.');
+      });
+    });
+  }
+
   function trainerModal(trainer=null){
     const t=trainer||{};
     const isEdit=!!trainer;
@@ -1654,7 +1763,7 @@ async function loadCloudData() {
       const sessions=Math.max(0,Number(t.sessions)||0);
 
       return `<article class="trainer-card">
-        <div class="avatar">${esc(initials)}</div>
+        ${trainerAvatarMarkup(t)}
         <span class="badge ${statusClass(status)}">${esc(status)}</span>
         <h2>${esc(name)}</h2>
         <p>${esc(t.specialty||'Personal Trainer')}</p>
@@ -2072,6 +2181,7 @@ async function loadCloudData() {
     if(page==='index.html' || page==='')renderDashboard();
     if(page==='member-profile.html')renderProfile();
     if(page==='reports.html')renderReports();
+    if(page==='settings.html')renderTrainerProfilesSettings();
     setupButtons();
     if(page==='bookings.html') setupBookingControls();
   }
